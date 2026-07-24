@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mbappé Dribble Rush 2D - Hardcore Edition</title>
+    <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRV2PhgqJjBafaboHN-IQivFMqNP9yg3myJT9IhozMOL3VEW_mBjQKar13E&s=10">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            background: #0d0d11;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 600px;
+            background: #23693e;
+            border: 4px solid #fff;
+            box-shadow: 0 0 25px rgba(0, 255, 120, 0.3);
+            overflow: hidden;
+        }
+
+        .lane-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            border-left: 2px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1,
+        h2 {
+            margin-bottom: 12px;
+            color: #00f0ff;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            text-align: center;
+        }
+
+        input {
+            width: 80%;
+            padding: 12px;
+            margin: 6px 0;
+            border-radius: 5px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+
+        button {
+            width: 80%;
+            padding: 14px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 5px;
+            background: #ff0055;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover, button:active {
+            background: #ff3377;
+            transform: scale(1.02);
+        }
+
+        .secondary-btn {
+            background: #333;
+        }
+
+        .secondary-btn:hover, .secondary-btn:active {
+            background: #555;
+        }
+
+        /* Score & HUD Display */
+        #ui-bar {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 15px;
+            z-index: 5;
+            text-shadow: 1px 1px 3px black;
+        }
+
+        /* Mobile Touch Controls Overlay */
+        #mobile-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 6;
+        }
+
+        .mobile-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            touch-action: manipulation;
+            backdrop-filter: blur(4px);
+        }
+
+        .mobile-btn:active {
+            background: rgba(0, 240, 255, 0.5);
+            border-color: #00f0ff;
+            transform: scale(0.92);
+        }
+
+        .mobile-btn-boost {
+            width: 80px;
+            height: 50px;
+            border-radius: 25px;
+            background: rgba(255, 0, 85, 0.4);
+            border-color: #ff0055;
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        .mobile-btn-boost:active {
+            background: rgba(255, 0, 85, 0.8);
+        }
+
+        /* Leaderboard Table */
+        table {
+            width: 90%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 6px 10px;
+            text-align: left;
+            border-bottom: 1px solid #444;
+        }
+
+        th {
+            color: #00f0ff;
+        }
+
+        .controls-hint {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .defender-legend {
+            margin-top: 10px;
+            font-size: 11px;
+            text-align: left;
+            width: 80%;
+            color: #ddd;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-container">
+        <!-- Pitch Dividers -->
+        <div class="lane-divider" style="left: 33.33%;"></div>
+        <div class="lane-divider" style="left: 66.66%;"></div>
+
+        <!-- HUD -->
+        <div id="ui-bar">
+            <span id="player-tag">Player: Guest</span>
+            <span id="score-val">Score: 0</span>
+        </div>
+
+        <!-- Canvas Game Field -->
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <!-- On-screen Mobile Controls -->
+        <div id="mobile-controls">
+            <div class="mobile-btn" id="m-btn-left">◄</div>
+            <div class="mobile-btn mobile-btn-boost" id="m-btn-boost">TURBO</div>
+            <div class="mobile-btn" id="m-btn-right">►</div>
+        </div>
+
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="overlay">
+            <h1>MBAPPÉ DRIBBLE RUSH</h1>
+            <p style="color:#ffcc00; font-size: 12px; margin-bottom: 10px;">HARDCORE EDITION</p>
+            <input type="text" id="username" placeholder="Username" maxlength="12">
+            <input type="password" id="password" placeholder="Password">
+            <button id="login-btn">Log In / Sign Up</button>
+            <p id="auth-msg" style="color: #ff5555; font-size: 12px; height: 15px;"></p>
+            <div class="controls-hint">
+                <b>[A] / [D]</b> or <b>[Left] / [Right]</b> : Switch Lanes<br>
+                <b>[W] / [Up]</b> or <b>On-Screen Buttons</b> : Hold Turbo Boost
+            </div>
+        </div>
+
+        <!-- Menu Screen -->
+        <div id="menu-screen" class="overlay hidden">
+            <h2 id="welcome-msg">Welcome!</h2>
+            <button id="start-btn">PLAY GAME</button>
+            <button id="leaderboard-btn" class="secondary-btn">LEADERBOARD</button>
+            <button id="logout-btn" class="secondary-btn">LOG OUT</button>
+
+            <div class="defender-legend">
+                <b>Defender Types:</b><br>
+                🔴 <b>Standard:</b> Straight runner<br>
+                🟡 <b>Swapper:</b> Switches lanes mid-run!<br>
+                🟣 <b>Sprinter:</b> Ultra high speed<br>
+                🟠 <b>Wall Pair:</b> Blocks 2 lanes at once!
+            </div>
+        </div>
+
+        <!-- Leaderboard Screen -->
+        <div id="leaderboard-screen" class="overlay hidden">
+            <h2>TOP DRIBBLERS</h2>
+            <table id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th>High Score</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-body"></tbody>
+            </table>
+            <button id="back-btn" class="secondary-btn">BACK</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="overlay hidden">
+            <h1 style="color: #ff0055;">TACKLED!</h1>
+            <h2 id="final-score">Score: 0</h2>
+            <button id="restart-btn">PLAY AGAIN</button>
+            <button id="menu-btn" class="secondary-btn">MAIN MENU</button>
+        </div>
+    </div>
+
+    <script>
+        // --- LOCAL STORAGE SYSTEM ---
+        const DB = {
+            getUsers: () => JSON.parse(localStorage.getItem('mbappe_users') || '{}'),
+            saveUsers: (users) => localStorage.setItem('mbappe_users', JSON.stringify(users)),
+            getLeaderboard: () => JSON.parse(localStorage.getItem('mbappe_scores') || '[]'),
+            saveLeaderboard: (lb) => localStorage.setItem('mbappe_scores', JSON.stringify(lb))
+        };
+
+        let currentUser = null;
+
+        // --- GAME ENGINE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const LANES = [66.66, 200, 333.33]; // X Coordinates for 3 lanes
+        let currentLane = 1;
+
+        let score = 0;
+        let baseSpeed = 7;
+        let pitchOffsetY = 0;
+        let isBoosting = false;
+        let gameActive = false;
+        let animationFrameId = null;
+
+        // Player Object
+        const player = {
+            x: LANES[1],
+            targetX: LANES[1],
+            y: 500,
+            radius: 20,
+            ballOffsetY: 22
+        };
+
+        // Obstacles
+        let defenders = [];
+        let defenderTimer = 0;
+
+        // DOM Elements
+        const authScreen = document.getElementById('auth-screen');
+        const menuScreen = document.getElementById('menu-screen');
+        const leaderboardScreen = document.getElementById('leaderboard-screen');
+        const gameoverScreen = document.getElementById('gameover-screen');
+
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+        const authMsg = document.getElementById('auth-msg');
+
+        const welcomeMsg = document.getElementById('welcome-msg');
+        const playerTag = document.getElementById('player-tag');
+        const scoreVal = document.getElementById('score-val');
+        const finalScore = document.getElementById('final-score');
+
+        // --- AUTHENTICATION ---
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                authMsg.textContent = "Please fill in all fields.";
+                return;
+            }
+
+            const users = DB.getUsers();
+
+            if (users[username]) {
+                if (users[username].password === password) {
+                    loginSuccess(username);
+                } else {
+                    authMsg.textContent = "Incorrect password!";
+                }
+            } else {
+                users[username] = { password: password, highScore: 0 };
+                DB.saveUsers(users);
+                loginSuccess(username);
+            }
+        });
+
+        function loginSuccess(username) {
+            currentUser = username;
+            usernameInput.value = '';
+            passwordInput.value = '';
+            authMsg.textContent = '';
+
+            playerTag.textContent = `Player: ${currentUser}`;
+            welcomeMsg.textContent = `Welcome, ${currentUser}!`;
+
+            authScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+        }
+
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            currentUser = null;
+            menuScreen.classList.add('hidden');
+            authScreen.classList.remove('hidden');
+            playerTag.textContent = "Player: Guest";
+        });
+
+        // --- NAVIGATION ---
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            gameoverScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('leaderboard-btn').addEventListener('click', () => {
+            showLeaderboard();
+            menuScreen.classList.add('hidden');
+            leaderboardScreen.classList.remove('hidden');
+        });
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            leaderboardScreen.classList.add('hidden');
+            menuScreen.classList.remove('hidden');
+        });
+
+        function showLeaderboard() {
+            const lb = DB.getLeaderboard();
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = '';
+
+            lb.sort((a, b) => b.score - a.score);
+            const top10 = lb.slice(0, 10);
+
+            top10.forEach((entry, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${entry.username}</td>
+                <td>${entry.score}</td>
+            `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function updateHighScore(newScore) {
+            if (!currentUser) return;
+
+            const users = DB.getUsers();
+            if (users[currentUser] && newScore > users[currentUser].highScore) {
+                users[currentUser].highScore = newScore;
+                DB.saveUsers(users);
+            }
+
+            let lb = DB.getLeaderboard();
+            const existingIdx = lb.findIndex(item => item.username === currentUser);
+
+            if (existingIdx !== -1) {
+                if (newScore > lb[existingIdx].score) {
+                    lb[existingIdx].score = newScore;
+                }
+            } else {
+                lb.push({ username: currentUser, score: newScore });
+            }
+
+            DB.saveLeaderboard(lb);
+        }
+
+        // --- CONTROLS (KEYBOARD) ---
+        window.addEventListener('keydown', (e) => {
+            if (!gameActive) return;
+
+            if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && currentLane > 0) {
+                currentLane--;
+            }
+            if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && currentLane < 2) {
+                currentLane++;
+            }
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                isBoosting = true;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+                isBoosting = false;
+            }
+        });
+
+        // --- CONTROLS (MOBILE TOUCH / BUTTONS) ---
+        const btnLeft = document.getElementById('m-btn-left');
+        const btnRight = document.getElementById('m-btn-right');
+        const btnBoost = document.getElementById('m-btn-boost');
+
+        const moveLeft = (e) => {
+            if (e) e.preventDefault();
+            if (gameActive && currentLane > 0) currentLane--;
+        };
+
+        const moveRight = (e) => {
+            if (e) e.preventDefault();
+            if (gameActive && currentLane < 2) currentLane++;
+        };
+
+        btnLeft.addEventListener('touchstart', moveLeft);
+        btnLeft.addEventListener('click', moveLeft);
+
+        btnRight.addEventListener('touchstart', moveRight);
+        btnRight.addEventListener('click', moveRight);
+
+        btnBoost.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (gameActive) isBoosting = true;
+        });
+
+        btnBoost.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            isBoosting = false;
+        });
+
+        btnBoost.addEventListener('mousedown', () => { if (gameActive) isBoosting = true; });
+        btnBoost.addEventListener('mouseup', () => { isBoosting = false; });
+        btnBoost.addEventListener('mouseleave', () => { isBoosting = false; });
+
+        // Touch Swipe Gestures directly on canvas
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        canvas.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (!gameActive) return;
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
+
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+
+            // Horizontal Swipe
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
+                if (diffX < 0 && currentLane > 0) currentLane--;
+                else if (diffX > 0 && currentLane < 2) currentLane++;
+            }
+        }, { passive: true });
+
+        // --- DEFENDER SPAWNER & MECHANICS ---
+        function spawnDefender() {
+            const rand = Math.random();
+
+            // 1. Wall Pair (15% chance if speed is high enough)
+            if (rand < 0.15 && baseSpeed > 9) {
+                const safeLane = Math.floor(Math.random() * 3);
+                for (let i = 0; i < 3; i++) {
+                    if (i !== safeLane) {
+                        defenders.push({
+                            type: 'standard',
+                            lane: i,
+                            x: LANES[i],
+                            y: -50,
+                            radius: 18,
+                            color: '#ff7700', // Orange Wall
+                            speedMultiplier: 1.0
+                        });
+                    }
+                }
+                return;
+            }
+
+            const laneIndex = Math.floor(Math.random() * 3);
+
+            // 2. Swapper Defender (20% chance)
+            if (rand < 0.35) {
+                defenders.push({
+                    type: 'swapper',
+                    lane: laneIndex,
+                    x: LANES[laneIndex],
+                    targetX: LANES[laneIndex],
+                    y: -50,
+                    radius: 18,
+                    color: '#ffcc00', // Yellow
+                    speedMultiplier: 1.1,
+                    hasSwapped: false
+                });
+            }
+            // 3. Sprinter Defender (25% chance)
+            else if (rand < 0.60) {
+                defenders.push({
+                    type: 'sprinter',
+                    lane: laneIndex,
+                    x: LANES[laneIndex],
+                    y: -50,
+                    radius: 16,
+                    color: '#aa00ff', // Purple
+                    speedMultiplier: 1.55
+                });
+            }
+            // 4. Standard Defender (Remaining 40%)
+            else {
+                defenders.push({
+                    type: 'standard',
+                    lane: laneIndex,
+                    x: LANES[laneIndex],
+                    y: -50,
+                    radius: 18,
+                    color: '#e63946', // Red
+                    speedMultiplier: 1.0
+                });
+            }
+        }
+
+        // --- GAME ENGINE ---
+        function startGame() {
+            menuScreen.classList.add('hidden');
+            gameoverScreen.classList.add('hidden');
+
+            score = 0;
+            baseSpeed = 7;
+            currentLane = 1;
+            player.x = LANES[1];
+            player.targetX = LANES[1];
+            defenders = [];
+            defenderTimer = 0;
+            pitchOffsetY = 0;
+            gameActive = true;
+
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate dynamic active speed & scale game speed overtime
+            const speedBoost = isBoosting ? 1.7 : 1.0;
+            const currentSpeed = baseSpeed * speedBoost;
+
+            // Acceleration scaling curve
+            baseSpeed += 0.003;
+
+            score += Math.floor(currentSpeed / 2);
+            scoreVal.textContent = `Score: ${score}`;
+
+            // Moving pitch lines effect
+            pitchOffsetY = (pitchOffsetY + currentSpeed) % 40;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.lineWidth = 3;
+            for (let y = pitchOffsetY - 40; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Fast player movement interpolation
+            player.targetX = LANES[currentLane];
+            player.x += (player.targetX - player.x) * 0.35;
+
+            // Draw Mbappé
+            ctx.fillStyle = '#4a2e16'; // Head
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#0055a5'; // France Kit
+            ctx.beginPath();
+            ctx.arc(player.x, player.y + 6, player.radius - 2, 0, Math.PI, false);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff'; // Jersey No.
+            ctx.font = 'bold 10px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('10', player.x, player.y + 12);
+
+            // Draw Ball
+            const ballY = player.y - player.ballOffsetY - (isBoosting ? 10 : 0);
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(player.x, ballY, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Defender Spawning Frequency (faster over time)
+            defenderTimer++;
+            const spawnInterval = Math.max(18, 50 - Math.floor(baseSpeed * 2.2));
+            if (defenderTimer > spawnInterval) {
+                spawnDefender();
+                defenderTimer = 0;
+            }
+
+            // Update & Render Defenders
+            for (let i = defenders.length - 1; i >= 0; i--) {
+                let d = defenders[i];
+                d.y += currentSpeed * d.speedMultiplier;
+
+                // Swapper logic: Trigger mid-way down the screen
+                if (d.type === 'swapper' && !d.hasSwapped && d.y > 180) {
+                    d.hasSwapped = true;
+                    let newLane = d.lane + (Math.random() < 0.5 ? 1 : -1);
+                    if (newLane < 0) newLane = 1;
+                    if (newLane > 2) newLane = 1;
+                    d.lane = newLane;
+                    d.targetX = LANES[d.lane];
+                }
+
+                if (d.targetX !== undefined) {
+                    d.x += (d.targetX - d.x) * 0.2; // Smooth lane shift
+                }
+
+                // Draw Defender
+                ctx.fillStyle = d.color;
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Distinct visual details
+                if (d.type === 'swapper') {
+                    ctx.fillStyle = '#000';
+                    ctx.fillText('↔', d.x, d.y + 4);
+                } else if (d.type === 'sprinter') {
+                    ctx.fillStyle = '#fff';
+                    ctx.fillText('⚡', d.x, d.y + 4);
+                }
+
+                // Precise Collision Check
+                const dx = player.x - d.x;
+                const dy = player.y - d.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < player.radius + d.radius - 4) {
+                    gameOver();
+                    return;
+                }
+
+                // Cleanup off-screen
+                if (d.y > canvas.height + 50) {
+                    defenders.splice(i, 1);
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gameActive = false;
+            finalScore.textContent = `Score: ${score}`;
+            updateHighScore(score);
+            gameoverScreen.classList.remove('hidden');
+        }
+    </script>
+</body>
+
+</html>

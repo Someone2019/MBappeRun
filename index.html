@@ -94,8 +94,8 @@
 
         button {
             width: 80%;
-            padding: 14px;
-            margin: 8px 0;
+            padding: 12px;
+            margin: 6px 0;
             border: none;
             border-radius: 5px;
             background: #ff0055;
@@ -133,7 +133,7 @@
             text-shadow: 1px 1px 3px black;
         }
 
-        /* Mobile Touch Controls Overlay */
+        /* Mobile Controls */
         #mobile-controls {
             position: absolute;
             bottom: 15px;
@@ -147,8 +147,8 @@
         }
 
         .mobile-btn {
-            width: 65px;
-            height: 65px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.25);
             border: 2px solid rgba(255, 255, 255, 0.6);
@@ -171,11 +171,11 @@
 
         .mobile-btn-boost {
             width: 80px;
-            height: 50px;
-            border-radius: 25px;
+            height: 48px;
+            border-radius: 24px;
             background: rgba(255, 0, 85, 0.4);
             border-color: #ff0055;
-            font-size: 13px;
+            font-size: 12px;
             letter-spacing: 1px;
         }
 
@@ -236,10 +236,10 @@
         <!-- Canvas Game Field -->
         <canvas id="gameCanvas" width="400" height="600"></canvas>
 
-        <!-- On-screen Mobile Controls -->
-        <div id="mobile-controls">
+        <!-- On-screen Mobile Controls (Togglable via Settings) -->
+        <div id="mobile-controls" class="hidden">
             <div class="mobile-btn" id="m-btn-left">◄</div>
-            <div class="mobile-btn mobile-btn-boost" id="m-btn-boost">TURBO</div>
+            <div class="mobile-btn mobile-btn-boost" id="m-btn-boost">SPEED</div>
             <div class="mobile-btn" id="m-btn-right">►</div>
         </div>
 
@@ -253,7 +253,7 @@
             <p id="auth-msg" style="color: #ff5555; font-size: 12px; height: 15px;"></p>
             <div class="controls-hint">
                 <b>[A] / [D]</b> or <b>[Left] / [Right]</b> : Switch Lanes<br>
-                <b>[W] / [Up]</b> or <b>On-Screen Buttons</b> : Hold Turbo Boost
+                <b>[W] / [Up]</b> : Hold Turbo Boost
             </div>
         </div>
 
@@ -261,6 +261,7 @@
         <div id="menu-screen" class="overlay hidden">
             <h2 id="welcome-msg">Welcome!</h2>
             <button id="start-btn">PLAY GAME</button>
+            <button id="mobile-toggle-btn" class="secondary-btn">MOBILE CONTROLS: OFF</button>
             <button id="leaderboard-btn" class="secondary-btn">LEADERBOARD</button>
             <button id="logout-btn" class="secondary-btn">LOG OUT</button>
 
@@ -308,6 +309,7 @@
         };
 
         let currentUser = null;
+        let mobileControlsEnabled = false;
 
         // --- GAME ENGINE ---
         const canvas = document.getElementById('gameCanvas');
@@ -341,6 +343,8 @@
         const menuScreen = document.getElementById('menu-screen');
         const leaderboardScreen = document.getElementById('leaderboard-screen');
         const gameoverScreen = document.getElementById('gameover-screen');
+        const mobileControlsDiv = document.getElementById('mobile-controls');
+        const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
 
         const usernameInput = document.getElementById('username');
         const passwordInput = document.getElementById('password');
@@ -350,6 +354,13 @@
         const playerTag = document.getElementById('player-tag');
         const scoreVal = document.getElementById('score-val');
         const finalScore = document.getElementById('final-score');
+
+        // --- MOBILE MODE SETTING TOGGLE ---
+        mobileToggleBtn.addEventListener('click', () => {
+            mobileControlsEnabled = !mobileControlsEnabled;
+            mobileToggleBtn.textContent = `MOBILE CONTROLS: ${mobileControlsEnabled ? 'ON' : 'OFF'}`;
+            mobileToggleBtn.style.color = mobileControlsEnabled ? '#00f0ff' : '#fff';
+        });
 
         // --- AUTHENTICATION ---
         document.getElementById('login-btn').addEventListener('click', () => {
@@ -403,6 +414,7 @@
         document.getElementById('menu-btn').addEventListener('click', () => {
             gameoverScreen.classList.add('hidden');
             menuScreen.classList.remove('hidden');
+            mobileControlsDiv.classList.add('hidden');
         });
 
         document.getElementById('leaderboard-btn').addEventListener('click', () => {
@@ -479,7 +491,7 @@
             }
         });
 
-        // --- CONTROLS (MOBILE TOUCH / BUTTONS) ---
+        // --- CONTROLS (MOBILE TOUCH / ON-SCREEN BUTTONS) ---
         const btnLeft = document.getElementById('m-btn-left');
         const btnRight = document.getElementById('m-btn-right');
         const btnBoost = document.getElementById('m-btn-boost');
@@ -514,7 +526,7 @@
         btnBoost.addEventListener('mouseup', () => { isBoosting = false; });
         btnBoost.addEventListener('mouseleave', () => { isBoosting = false; });
 
-        // Touch Swipe Gestures directly on canvas
+        // Swipe Touch Gestures on Canvas
         let touchStartX = 0;
         let touchStartY = 0;
 
@@ -531,7 +543,6 @@
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
 
-            // Horizontal Swipe
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 30) {
                 if (diffX < 0 && currentLane > 0) currentLane--;
                 else if (diffX > 0 && currentLane < 2) currentLane++;
@@ -607,6 +618,12 @@
         function startGame() {
             menuScreen.classList.add('hidden');
             gameoverScreen.classList.add('hidden');
+
+            if (mobileControlsEnabled) {
+                mobileControlsDiv.classList.remove('hidden');
+            } else {
+                mobileControlsDiv.classList.add('hidden');
+            }
 
             score = 0;
             baseSpeed = 7;
@@ -746,6 +763,7 @@
             gameActive = false;
             finalScore.textContent = `Score: ${score}`;
             updateHighScore(score);
+            mobileControlsDiv.classList.add('hidden');
             gameoverScreen.classList.remove('hidden');
         }
     </script>
